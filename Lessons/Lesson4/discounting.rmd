@@ -104,6 +104,7 @@ create a variable => filter data and covert to triangle. then convert to cummula
 _STEP 1: Take paid data for House business and Small claim size_
 
 ```{r}
+# chceme dáta, ktoré obsahujú iba riadky Business je House, ClaimSize je Small a datase_type je PAID
 Paid_HH_sml <- dt_PaidCase %>% filter( Business == "House" & ClaimSize == "Small" & dataset_type == "PAID") 
 head(Paid_HH_sml)
 ```
@@ -119,83 +120,96 @@ Paid_HH_sml_triangle
 _STEP 3: Now start plotting things to see more information_
 
 ```{r}
-plot(Paid_HH_sml_triangle)  
-plot(predict(chainladder(Paid_HH_sml_triangle)))
+plot(Paid_HH_sml_triangle) # z grafu vidime, ze najvascie zmeny nastanu prve tri roky po vzniku udalosti a potom sa Sumofamount (hodnota narokov)  
+plot(predict(chainladder(Paid_HH_sml_triangle))) # do predchadzajuceho grafu sa doplnia aj nase odhady tykajuce sa vysky Sumofamount pre dalsie roky (chybajuce hodnoty v "druhej casti trojuholniku" sa pomocou kodu predict(chainladder(...))), ktore sa velmi neodlisuju od poslednej znamej Sumofamount, co nie je prekvapenie, kedze po troch rokoch sa vyska Sumofamount ustalovala 
 ```
 
 _STEP 4: And get the aging factors and some other stat's out to see more details_
 Hint: ata(...)
 
 ```{r}
-ata(Paid_HH_sml_triangle)
+ata(Paid_HH_sml_triangle) # vidime. ze najvacsie zmeny nastanu medzi o dva roky neskor ako vznikla udalost a rok neskor ako vznikla udalost. 
+#Zaver: pre House, Small, Paid data nastava, ze najvacsie zmeny v hodnote Sumofamount nastanu o dva roky po vzniku udalosti (prudky rast oproti prvemu roku po vzniku udalosti) a potom sa to ustaluje. Najvyssie naroky budu pre udalosti vzniknute v roku 2009 a 2010. 
 ```
 
 _Now repeat for all types of buiness and sizes of claims. Compare the findings..._
 
 ```{r}
+#data s Business je House, ClaimSize je Large a dataset_type je Paid
 Paid_HH_Large<-dt_PaidCase %>% filter( Business == "House" & ClaimSize == "Large" & dataset_type == "PAID")  
 head(Paid_HH_Large)
 Paid_HH_Large_triangle <- Paid_HH_Large %>% as.triangle(origin = "ay", dev = "dy", "SumOfamount")
 Paid_HH_Large_triangle
-plot(Paid_HH_Large_triangle) #pre udalosti, ktore vznikli v roku 2008 (2) nam vyslo, ze o 2 roky (a o viac rokov) je vysie Sumofamount ("vyplatenie celkovych narokov (pohladavok)- celkovu hodnotu, ktoru musia vyplatit") ako vyslo pre udalosti vzniknute v roku 2007 (1), pri ktorych sme zistili aka je vyska Sumofamount o 3 roky (a viac rokov). Najvacsie zmeny v Sumofamount nastavaju o rok a o 2 roky po vzniku udalosti, potom sa Sumofamount zacina ustalovat. Najviac ma Sumofamount pre rok pre 2011 (5) a najmenej pre rok 2014 (8)   
+plot(Paid_HH_Large_triangle) #pre udalosti, ktore vznikli v roku 2008 (2) nam vyslo, ze o 2 roky (a o viac rokov) je vysie Sumofamount ("vyplatenie celkovych narokov (pohladavok)- celkovu hodnotu, ktoru musia vyplatit") ako vyslo pre udalosti vzniknute v roku 2007 (1), pri ktorych sme zistili aka je vyska Sumofamount o 3 roky (a viac rokov). Pre udalosti vzniknute v roku 2008 je zaujimave ze vyska Sumofamount je ustalena po dvoch rokoch od vzniku udalosti (,ale nepozname aka bola hodnota Sumofamount po roku od vzniku udalosti). Najvacsie zmeny v Sumofamount nastavaju o rok a o 2 roky po vzniku udalosti, potom sa Sumofamount zacina ustalovat. Najviac ma Sumofamount pre rok pre 2011 (5) a najmenej pre rok 2014 (8)   
 plot(predict(chainladder(Paid_HH_Large_triangle))) # tento uz obsahuje aj ocakavane hodnoty 
-ata(Paid_HH_Large_triangle)
+ata(Paid_HH_Large_triangle) #z tabulky vidime, ze obrovsky skok po vzniku udalosti nastane o dva roky oproti o rok (pomer medzi o dva roky a o jeden rok po vzniku udalosti je vo  vadcsine origin vascie ako 2 )
+#Zaver(Small vs. Large): Large sa roky, v ktorych vznikli udalosti viac od seba odlisuju ako pri Small, kde niektore roky sa podobaju, co je zrejme kedze Small asi obsahuje vela malych a teda celkom po zaokruhleni podobnych narokov od poistenych. pre obidve skupiny plati, ze sa vyska Sumofamount zacne po troch rokoch po vzniku udalosti ustalovat. 
 
+#data s Business je 3rd Party (auta), ClaimSize je Large a dataset_type je Paid
 Paid_3rd_Large<-dt_PaidCase %>% filter( Business == "3rd Party" & ClaimSize == "Large" & dataset_type == "PAID")
 head(Paid_3rd_Large)
 Paid_3rd_Large_triangle <- Paid_3rd_Large %>% as.triangle(origin = "ay", dev = "dy", "SumOfamount")
 Paid_3rd_Large_triangle
-plot(Paid_3rd_Large_triangle) 
+plot(Paid_3rd_Large_triangle) #najvacsie hodnoty Sumofamount nastavaju o tri roky po vzniku udalosti (cize po troch rokoch od vzniku udalosti nastalo najviac vyplatenia narokov)
 plot(predict(chainladder(Paid_3rd_Large_triangle)))
 predict(chainladder(Paid_3rd_Large_triangle))#chcela som vidiet hodnoty ake ocakava v roku 2016 (teda aku hodnotu ocakava napr o rok, to je v roku 2017), lebo dost ovplivnili graf "predict(chainladder(Paid_3rd_Large_triangle))" a je vidno ze odhaduju dost vysoke hodnoty Sumofamount
 ata(Paid_3rd_Large_triangle)
+#Zaver (HH_Large vs.3rd_Large): Hodnoty Sumofamount v 3rd_Large viac skacu ako pri HH_Large. V 3rd_Large nevizera ze by sa ustalovali prave naopak dokonca aj po sietich rokoch po vzniku udalosti rastie Sumofamout (napr. Origin=rok 2011) 
 
+#data s Business je 3rd Party (auta), ClaimSize je Small a dataset_type je Paid
 Paid_3rd_Small<-dt_PaidCase %>% filter( Business == "3rd Party" & ClaimSize == "Small" & dataset_type == "PAID")
 head(Paid_3rd_Small)
 Paid_3rd_Small_triangle<- Paid_3rd_Small %>% as.triangle(origin = "ay", dev = "dy", "SumOfamount")
 Paid_3rd_Small_triangle
-plot(Paid_3rd_Small_triangle) 
+plot(Paid_3rd_Small_triangle)#•najnizsie Sumofamount to vychadza pre udalosti vzniknute v roku 2007  
 plot(predict(chainladder(Paid_3rd_Small_triangle)))
 ata(Paid_3rd_Small_triangle)
+#zaver(3rd Small vs.3rd Large): Pri 3rd Small sa hodnoty Sumofamount nemenia az tak velmi vzhladom na rok v ktorom vznikla udalost (rastu priblizne rovnakym tempom). Tak ako to bolo aj pri House Small tak aj tu sa niektore vysky Sumofamount podobuju na ine Sumofamount, ktore boli vyratane pre iny rok, napr. udalosti ktore vznikli v roku 2009, tak ich Sumofamount sa podobaju na hodnoty Sumofamount, ktore boli vyratane pre udalosti vzniknute v roku 2008.   
 ```
 
 _If you are now comforatble with what this does, try doing the same, but using additional information: The Case data!_
 Hint: Sum Paid and Case together to come up with the final claims estimates (the Incurred claims)
 
 ```{r}
-dt_PC<-dt_PaidCase%>% mutate(dataset_type="PC")
-head(dt_PC)
-PC_HH_Large<-dt_PC %>% filter( Business == "House" & ClaimSize == "Large" )  
+#chceme data, kde Business je House a ClaimSize je Large, cize staci filter obsahujuci iba Business a ClaimSize, kedze  vieme ze dataset_type moze byt iba Case alebo Paid
+PC_HH_Large<-dt_PaidCase %>% filter( Business == "House" & ClaimSize == "Large" )  
 head(PC_HH_Large)
 PC_HH_Large_triangle <- PC_HH_Large %>% as.triangle(origin = "ay", dev = "dy", "SumOfamount")
 PC_HH_Large_triangle
 plot(PC_HH_Large_triangle) 
 plot(predict(chainladder(PC_HH_Large_triangle)))
 ata(PC_HH_Large_triangle)
+#Zaver: Ked ratame aj s Case, tak v grafe vidime, ze uz nie su take skoky medzi o dva roky a o rok. Inak sa to sprava priblizne rovnako (ustalene)
 
-PC_HH_Small<-dt_PC %>% filter( Business == "House" & ClaimSize == "Small" )  
+#chceme data, kde Business je House a ClaimSize je Small
+PC_HH_Small<-dt_PaidCase %>% filter( Business == "House" & ClaimSize == "Small" )  
 head(PC_HH_Small)
 PC_HH_Small_triangle <- PC_HH_Small %>% as.triangle(origin = "ay", dev = "dy", "SumOfamount")
 PC_HH_Small_triangle
 plot(PC_HH_Small_triangle) 
 plot(predict(chainladder(PC_HH_Small_triangle)))
 ata(PC_HH_Small_triangle)
+#Zaver: Ked ratame aj s Case, tak v grafe vidime, ze cim je dlhsie po vzniku udalosti, tak Sumofamount klesa
 
-PC_3rd_Large<-dt_PC %>% filter( Business == "3rd Party" & ClaimSize == "Large" )  
+#chceme data, kde Business je 3rd Party a ClaimSize je Large
+PC_3rd_Large<-dt_PaidCase %>% filter( Business == "3rd Party" & ClaimSize == "Large" )  
 head(PC_3rd_Large)
 PC_3rd_Large_triangle <- PC_3rd_Large %>% as.triangle(origin = "ay", dev = "dy", "SumOfamount")
 PC_3rd_Large_triangle
 plot(PC_3rd_Large_triangle) 
 plot(predict(chainladder(PC_3rd_Large_triangle)))
 ata(PC_3rd_Large_triangle)
+#Zaver: Ked ratame aj s Case, tak v grafe nastavaju o trochu mensie skoky ako ked nebol priratany Case.O trochu skor sa zacina Sumofamount ustalovat.
 
-PC_3rd_Small<-dt_PC %>% filter( Business == "3rd Party" & ClaimSize == "Small" )  
+#chceme data, kde Business je 3rd Party a ClaimSize je Small
+PC_3rd_Small<-dt_PaidCase %>% filter( Business == "3rd Party" & ClaimSize == "Small" )  
 head(PC_3rd_Small)
 PC_3rd_Small_triangle <- PC_3rd_Small %>% as.triangle(origin = "ay", dev = "dy", "SumOfamount")
 PC_3rd_Small_triangle
 plot(PC_3rd_Small_triangle) 
 plot(predict(chainladder(PC_3rd_Small_triangle)))
 ata(PC_3rd_Small_triangle)
+#Zaver: Ked ratame aj s Case, tak v grafe nastavaju vacsie vykyvi Sumofamount po vzniku udalosti. Dalej navacsie Sumofamout nastame asi priblizne po dvoch rokoch a to zacne klesat pomaly. 
 
 
 ```
@@ -206,11 +220,19 @@ In insurance this means how fast is the data fully developed. The age-to-age fac
 
 So hopefully by this time you know how the losses were calculated for you to use in previous class...
 
+#Preco trva pre 3rd Party (auta) dlhsie kym sa ustalia oproti House (budovy) ?
+_Jeden z dvovodou, ze ked nastane poistna udalost tykajuca sa budov, tak sa naroky plynuce zo zmluvy vyplatia priblizne do 3 rokov a je mala sanca ze by neskor vznikli dalsie naroky. Zatial co sa tyka napr. autohavarie, tak nasledky nehody sa mozu prejavit aj po dlhsej dobe, ale mozu byt aj trvale napr. ciatocna invalidita, ktora ho ovplivni pri praci._
+#Rozdieli medzi Large a Small Claim(naroky) 
+_Az tak velmi nenastali zmeny v grafe. Trochu lepsie bolo rozoznat priamky (znazornuju vysku Sumofamount vzhladom na origin=roky kedy vznikla udalost, napr. priamka na ktorej sa nachadzaju jednotky je priamka ktora hovori o "vyvoji" Sumofamount pre udalosti, ktore zvnikli v roku 2007), co mohlo sposobit, ze pri Small vznikaju male naroky, ktore nahlasi poistenec ako pri Large._  
 
 #### Exercise 3
 There are a couple of different types of business in the data from previous lesson. 
 What do you think, how long are the average delays in payments? Set up a table, that will 
 _show your assumptions and commit it to your git repository._
+```{r}
+summary(dt_KPI)
+
+```
 
 
 ### Discounting  losses
