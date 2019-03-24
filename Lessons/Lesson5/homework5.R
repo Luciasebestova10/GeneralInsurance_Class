@@ -1,35 +1,96 @@
+```{r}
 library(dplyr)
 dt_Policy <- read.csv("C:/Users/Lucia_Sebestova/Documents/Matfyz(4)/VTvAktuarstve/GeneralInsurance_Class/Data/lesson5_PolicyHistory.csv") %>% distinct(NrPolicy, NrObject, .keep_all = TRUE) 
 dt_Claims <- read.csv("C:/Users/Lucia_Sebestova/Documents/Matfyz(4)/VTvAktuarstve/GeneralInsurance_Class/Data/lesson5_Claims.csv") %>% distinct(NrClaim, .keep_all = TRUE)
-#spojime uvedene 2 subory
+```
+spojime uvedene 2 subory
+```{r}
 dt_pol_w_claims <- left_join(dt_Policy, 
                              dt_Claims, 
                              by = c("NrPolicy", "NrObject")
 )
 library(lubridate)
-#pridala som premennu: Time_Exposure, ktora hovori na ako dlho je uzavreta poistka, teda kolko dni trva poistenie
-#                      Ultimate Losses - celkove straty jednej poistnej zmluvy 
-#                      Burning Cost - kolko vyplati za jeden den na jednu poistnu zmluvu poistovna (kolko poistovnu stoji za den clovek, s ktorym uzavrela poistnu zmluvu)        
+```
+pridala som premennu: Time_Exposure, ktora hovori na ako dlho je uzavreta poistka, teda kolko dni trva poistenie
+                      Ultimate Losses - celkove straty jednej poistnej zmluvy 
+                      Burning Cost - kolko vyplati za jeden den na jednu poistnu zmluvu poistovna (kolko poistovnu stoji za den clovek, s ktorym uzavrela poistnu zmluvu) 
+```{r}                      
 dt_pol_w_claims <-dt_pol_w_claims %>% mutate(Time_Exposure = lubridate::dmy(Dt_Exp_End) - lubridate::dmy(Dt_Exp_Start),
                                              Ult_Loss = Paid + Reserves,
                                              Burning_Cost = ifelse(is.na(Ult_Loss), 0,  Ult_Loss / as.integer(Time_Exposure)))
+```
+Exercise 1
+```{r}
 library(ggplot2)
-#pozrela som sa ake je Burning Case ak vysvetlujuca premenna je vek poistenca
+#pozrela som sa ake je Burning Case ak vysvetlujuca premenna je vek poistnika (osoba ktora uzavrela poistnu zmluvu a ktora je vlasnikom vozidla)
 dt_pol_w_claims %>% 
   ggplot(aes(y = Burning_Cost, x = D_age)) + 
   geom_jitter()
-#najvacsie hodnoty Burning Case nadobuda pre ludi vo veku priblizne 40-45. Mohlo to sposobit, ze deti zacali pouzivat vozidlo, ktore je napisane na poistnika. 
-#Dalej vidim, ze Burning Case nastalo aj ked vek bol blizko alebo nad 100 rokov.
-#Mohlo nastat, ze aj ked poistnik (osoba ktora uzavrela poistnu zmluvu a ktora je vlasnikom vozidla), ktory je v tom veku,
-#ale zrejme to vozidlo vyuziva ina osoba, ktora je schopna soferovat. Druha moznost je, ze sa jedna chybny udaj.   
+```
+najvacsie hodnoty Burning Case nadobuda pre ludi vo veku priblizne 40-45. Mohlo to sposobit, ze deti poistnika zacali pouzivat vozidlo, ktory este nemaju skusenosti. Dalsi vek, ktory je rizikovy je 55. V tom veku moze nastavat zhorsenie zraku. Na grafe vidim, ze bodky su hustesie vo vekoch 20-75, potom sa to zrieduje,teda bud vo vyssich vekoch maju menej poistnych udalosti alebo vozidlo sa nepouziva tak casto a teda je mensia sanca, ze nastane poistna udalost. Dalej vidim, ze Burning Case nastalo aj ked vek bol blizko alebo nad 100 rokov.Mohlo nastat, ze aj ked poistnik, ktory je v tom veku, ale zrejme to vozidlo vyuziva ina osoba, ktora je schopna soferovat. Druha moznost je, ze sa jedna o chybny udaj.   
+Co hovoria priemery Burning Case a pocet vzhladom na D_age?
+```{r}
+dt_pol_w_claims %>% 
+  group_by(D_age) %>% 
+  summarise(BC_avg = mean(Burning_Cost, na.rm  = TRUE), 
+            BC_median = median(Burning_Cost, na.rm = TRUE),
+            cnt = n()) %>% 
+  arrange(desc(BC_avg)) %>% head() 
+```
+Ukazka, prvych siestych vekovych kategorii, pri ktorych vychadza priemer Burning Cost najvacsi (teda prvych 6 vekovych kategorii, ktore su najrizikovejsie z hladiska priemeru Burning Cost).Median vychadza pre kazdy vek 0 teda aspon 50% zo vsetkych poistnych zmluv ma nulovu Burning Cost. Najviac to vychadza pre vek 60, pri ktorom je priemer vyrazne odlisni od ostatnych vekov. Na 2. mieste su osoby vo veku 76, ktorych je 93, ale na 6. mieste je vek 34, ktory ma priemer o trochu mensi, ale v tej vekovej kategorii je az 222 osob. Cize sice je vek 34 na 6. mieste, ale kedze v tej vekovej kategorii je az 222 osob, tak napokon je vek 34 rizikovejsi ako vek 76. Preto by bolo vhodnejsie zoradit podla poctu poistnych  zmluv v urcitych vekovych kategoriach.
 
-#pozrela som sa ake je Burning Case ak vysvetlujuca premenna je rok vyroby vozidla
-#Poznamka data, s ktorymi pracujem su pre poistne zmluvy uzavrete v roku  2012-2015
+```{r}
+dt_pol_w_claims %>% 
+  group_by(D_age) %>% 
+  summarise(BC_avg = mean(Burning_Cost, na.rm  = TRUE), 
+            BC_median = median(Burning_Cost, na.rm = TRUE),
+            cnt = n()) %>% 
+  arrange(desc(cnt)) %>% head() 
+```
+Teda ked porovname vek 60 a vek 46, tak rizikovejsi je vek 46, lebo aj ked je BC_avg omnoho mensia, tak omnoho viac uzavrelo poistnu zmluvu vo veku 46.  
+```{r}
+dt_pol_w_claims %>% 
+  ggplot(aes(group=D_age, y = Burning_Cost, x = D_age)) + 
+  geom_boxplot() +
+  ylim(0, 500)+xlim(19,110)
+```
+Z grafu vidime, ze najrizikovejsi je vek 45, o trochu mene je vek okolo 50.
+Zaver: Medzi najrizikovejsie vekove kategorie by som povazovala okolo 40-50.
+
+Pozrela som sa ake je Burning Case ak vysvetlujuca premenna je rok vyroby vozidla.
+Poznamka: data, s ktorymi pracujem su pre poistne zmluvy uzavrete v roku  2012-2015. Teda poistne zmluvy sa uzatvorili priblizne rovnako. Rozdiel je iba max 3 roky.
+```{r}
 dt_pol_w_claims %>% 
   ggplot(aes(y = Burning_Cost, x = Construct_year)) + 
   geom_jitter()
-#z scatterplot vidim, ze Burinig case rastie pre vozidla vyrobene od roku priblizne 2005 a najvacsie to je okolo roku 2011. 
-#Co nie je az tak prekvapujuce, kedze vozidla cim su starsie tak stracaju na hodnote, teda ak nastane nejaka poistna udalost, tak odskodne nie je take vysoke v porovnani novsim typom vozidla.
-#Dalej som si vsimla ze Burning case bolo vacsinou nulove pre roky od 1977-1995. Mohlo to sposobit, ze ludia ktory vlastia taketo stare vozidlo, tak malokto mal/nahlasil poistnu udalost 
-#alebo poistovna uzavrela malo poistnych zmluv, ktore poistovali vozidlo vyrobene v tych rokoch.
+```
+z scatterplot vidim, ze Burinig case rastie pre vozidla vyrobene od roku priblizne 2005 a najvacsie to je okolo roku 2011.Co nie je az tak prekvapujuce, kedze vozidla cim su starsie tak stracaju na hodnote, teda ak nastane nejaka poistna udalost, tak odskodne nie je take vysoke v porovnani novsim typom vozidla. Dalej som si vsimla ze Burning case bolo vacsinou nulove pre roky od 1977-1995. Mohlo to sposobit, ze ludia ktory vlastia taketo stare vozidlo, tak malokto mal/nahlasil poistnu udalost alebo poistovna uzavrela malo poistnych zmluv, ktore poistovali vozidlo vyrobene v tych rokoch.
+```{r}
+dt_pol_w_claims %>% 
+  group_by(Construct_year) %>% 
+  summarise(BC_avg = mean(Burning_Cost, na.rm  = TRUE),  
+            cnt = n()) %>% 
+  arrange(desc(BC_avg)) %>% head() 
+```
 
+```{r}
+dt_pol_w_claims %>% 
+  ggplot(aes(group=Construct_year, y = Burning_Cost, x = Construct_year)) + 
+  geom_boxplot() +
+  ylim(0, 250)
+```
+
+Exercise 2
+```{r}
+model1 <- glm(data = dt_pol_w_claims %>% filter(Burning_Cost != 0, Burning_Cost < 100),
+              formula = Burning_Cost ~ D_age,
+              family = Gamma())
+summary(model1)
+```
+
+```{r}
+model2 <- glm(data = dt_pol_w_claims %>% filter(Burning_Cost != 0, Burning_Cost < 100),
+              formula = Burning_Cost ~ Construct_year,
+              family = Gamma())
+summary(model2)
+```
