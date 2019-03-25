@@ -9,12 +9,12 @@ dt_pol_w_claims <- left_join(dt_Policy,
                              dt_Claims, 
                              by = c("NrPolicy", "NrObject")
 )
-library(lubridate)
 ```
 pridala som premennu: Time_Exposure, ktora hovori na ako dlho je uzavreta poistka, teda kolko dni trva poistenie
-Ultimate Losses - celkove straty jednej poistnej zmluvy 
-Burning Cost - kolko vyplati za jeden den na jednu poistnu zmluvu poistovna (kolko poistovnu stoji za den clovek, s ktorym uzavrela poistnu zmluvu) 
-```{r}                      
+                      Ultimate Losses - celkove straty jednej poistnej zmluvy 
+                      Burning Cost - kolko vyplati za jeden den na jednu poistnu zmluvu poistovna (kolko poistovnu stoji za den clovek, s ktorym uzavrela poistnu zmluvu) 
+```{r}
+library(lubridate)
 dt_pol_w_claims <-dt_pol_w_claims %>% mutate(Time_Exposure = lubridate::dmy(Dt_Exp_End) - lubridate::dmy(Dt_Exp_Start),
                                              Ult_Loss = Paid + Reserves,
                                              Burning_Cost = ifelse(is.na(Ult_Loss), 0,  Ult_Loss / as.integer(Time_Exposure)))
@@ -23,13 +23,13 @@ Exercise 1
 ```{r}
 library(ggplot2)
 #pozrela som sa ake je Burning Case ak vysvetlujuca premenna je vek poistnika (osoba ktora uzavrela poistnu zmluvu a ktora je vlasnikom vozidla)
-dt_pol_w_claims %>% 
+dt_pol_w_claims %>% group_by(D_age)%>%
   ggplot(aes(y = Burning_Cost, x = D_age)) + 
   geom_jitter()
 ```
-najvacsie hodnoty Burning Case nadobuda pre ludi vo veku priblizne 40-45. Mohlo to sposobit, ze deti poistnika zacali pouzivat vozidlo, ktory este nemaju skusenosti. Dalsi vek, ktory je rizikovy je 55. V tom veku moze nastavat zhorsenie zraku. Na grafe vidim, ze bodky su hustesie vo vekoch 20-75, potom sa to zrieduje,teda bud vo vyssich vekoch maju menej poistnych udalosti alebo vozidlo sa nepouziva tak casto a teda je mensia sanca, ze nastane poistna udalost. Dalej vidim, ze Burning Case nastalo aj ked vek bol blizko alebo nad 100 rokov.Mohlo nastat, ze aj ked poistnik, ktory je v tom veku, ale zrejme to vozidlo vyuziva ina osoba, ktora je schopna soferovat. Druha moznost je, ze sa jedna o chybny udaj.   
+Najvacsie hodnoty Burning Case nadobuda pre ludi vo veku priblizne 40-45. Mohlo to sposobit, ze deti poistnika zacali pouzivat vozidlo, ktory este nemaju skusenosti. Dalsi vek, ktory je rizikovy je 55. V tom veku moze nastavat zhorsenie zraku. Na grafe vidim, ze bodky su hustesie vo vekoch 20-75, potom sa to zrieduje,teda bud vo vyssich vekoch maju menej poistnych udalosti alebo vozidlo sa nepouziva tak casto a teda je mensia sanca, ze nastane poistna udalost. Dalej vidim, ze Burning Case nastalo aj ked vek bol blizko alebo nad 100 rokov.Mohlo nastat, ze aj ked poistnik, ktory je v tom veku, ale zrejme to vozidlo vyuziva ina osoba, ktora je schopna soferovat. Druha moznost je, ze sa jedna o chybny udaj.   
 Co hovoria priemery Burning Case a pocet vzhladom na D_age?
-  ```{r}
+```{r}
 dt_pol_w_claims %>% 
   group_by(D_age) %>% 
   summarise(BC_avg = mean(Burning_Cost, na.rm  = TRUE), 
@@ -52,10 +52,10 @@ Teda ked porovname vek 60 a vek 46, tak rizikovejsi je vek 46, lebo aj ked je BC
 dt_pol_w_claims %>% 
   ggplot(aes(group=D_age, y = Burning_Cost, x = D_age)) + 
   geom_boxplot() +
-  ylim(0, 500)+xlim(19,110)
+  ylim(0, 500)+xlim(18,110)
 ```
 Z grafu vidime, ze najrizikovejsi je vek 45, o trochu mene je vek okolo 50.
-Zaver: Medzi najrizikovejsie vekove kategorie by som povazovala okolo 40-50.
+Zaver: Medzi najrizikovejsie vekove kategorie by som povazovala okolo 40-50. Kedze y-ovu os som si zadefinovala iba po 500, tak na grafe nie je vidno niekrorych outliers (cize ich BC vychadzal viac ako 500). Pri tomto grafe nastalo ze sme prisli o 83 hodnot, teda pri niektorych sme nepoznali vek (na tom policku bolo NA). X-ovu os som si tiez nastavila kedze z dat sa dalo zistit ze najmladsia osoba mala 20 rokov. Nastal pripad ze osoba mala skoro 150 rokov ale predpokladam, ze sa jedna o nejaku chybu, preto som nastavila max 110 na x-ovej osy. 
 
 Pozrela som sa ake je Burning Case ak vysvetlujuca premenna je rok vyroby vozidla.
 Poznamka: data, s ktorymi pracujem su pre poistne zmluvy uzavrete v roku  2012-2015. Teda poistne zmluvy sa uzatvorili priblizne rovnako. Rozdiel je iba max 3 roky.
@@ -64,7 +64,7 @@ dt_pol_w_claims %>%
   ggplot(aes(y = Burning_Cost, x = Construct_year)) + 
   geom_jitter()
 ```
-Z scatterplot vidim, ze Burinig case rastie pre vozidla vyrobene od roku priblizne 2005 a najvacsie to je okolo roku 2011.Co nie je az tak prekvapujuce, kedze vozidla cim su starsie tak stracaju na hodnote, teda ak nastane nejaka poistna udalost, tak odskodne nie je take vysoke v porovnani novsim typom vozidla. Dalej som si vsimla ze Burning case bolo vacsinou nulove pre roky od 1977-1995. Mohlo to sposobit, ze ludia ktory vlastia taketo stare vozidlo, tak malokto mal/nahlasil poistnu udalost alebo poistovna uzavrela malo poistnych zmluv, ktore poistovali vozidlo vyrobene v tych rokoch.
+Z scatterplot vidim, ze Burinig case rastie pre vozidla vyrobene od roku priblizne 2005 a najvacsie to je okolo roku 2011.Co nie je az tak prekvapujuce, kedze vozidla cim su starsie tak stracaju na hodnote, teda ak nastane nejaka poistna udalost, tak odskodne nie je take vysoke v porovnani novsim typom vozidla. Dalej som si vsimla ze Burning case bolo vacsinou nulove pre roky od 1977-1995. Mohlo to sposobit, ze ludia ktory vlastia taketo stare vozidlo, tak malokto mal/nahlasil poistnu udalost alebo poistovna uzavrela malo poistnych zmluv, ktore poistovali vozidlo vyrobene v tych rokoch. Na grafe vidime, ze pre roky 2008-2014 vyskakuju niektore BC. Teda niekto kto ma poistene vozidlo napr. s vyrobnym rokom 2012 ma BC az nad 2000. Jedna sa zrejme o nejakeho outlier. Pri vytvarani som prisla o 14 ludi (riadkov), teda nemali uvedeny rok vyroby vozidla.   
 ```{r}
 dt_pol_w_claims %>% 
   group_by(Construct_year) %>% 
@@ -72,26 +72,46 @@ dt_pol_w_claims %>%
             cnt = n()) %>% 
   arrange(desc(BC_avg)) %>% head() 
 ```
-Vychádza, ze podla priemeru Burning Cost je najrizikovejsi rok 1997, ale poistiek, pri ktorych vozidlo bolo vyrobene v tom roku bolo iba 30 a narozdiel od inych rokov kde priemer BC je o trochu mensi ale je omnoho viac uzavretych poistiek s tymi rokmi vyrobi. Preto som sa pozrela ake roky budu na prvych siestych miestach ak to zoradim  podla poctu uzavretych zmluv.
-
+Vychádza, ze podla priemeru Burning Cost je najrizikovejsi rok 1997, ale poistiek, pri ktorych vozidlo bolo vyrobene v tom roku bolo iba 30 a narozdiel od inych rokov kde priemer BC je o trochu mensi ale je omnoho viac uzavretych poistiek s tymi vyrobnymi rokmi. Preto som sa pozrela ake vyrobne roky budu na prvych siestych miestach ak to zoradim  podla poctu uzavretych zmluv.
+```{r}
+dt_pol_w_claims %>% 
+  group_by(Construct_year) %>% 
+  summarise(BC_avg = mean(Burning_Cost, na.rm  = TRUE),  
+            cnt = n()) %>% 
+  arrange(desc(cnt)) %>% head() 
+```
+Podla tohto zoradenia je na prvom mieste vyrobny rok 2011. Ked som mala zoradene podla priemeru BC, tak to bolo na druhom mieste. Teda najrizikovejsie su vozidla vyrobene v roku 2011. Ked uvazim ze poistky boli uzatvarane v rokoch 2012-2015, tak najrizikovejsie su vozidla, ktore su stare max 4 roky, teda "celkom" nove.
 ```{r}
 dt_pol_w_claims %>% 
   ggplot(aes(group=Construct_year, y = Burning_Cost, x = Construct_year)) + 
   geom_boxplot() +
   ylim(0, 250)
 ```
+Z grafu vidim, ze by si poistovna mala davat pozor na vyrobne roky vozidiel 2010-2013. V grafe nie su najvacsi outliers, kedze som obmadzila y-ovu os. Pri vytvoreni grafu som prisla o 22 ludi (riadkov). 
+
+Outliers som mala pri D age aj pri Construct year. Aby bol model co najlepsi, trebalo by ich nejako doriesit, lebo mi mozu aj negativne ovplivnit predikciu, teda odhady ("predpovede") pre BC, ak pozname vek poistnika (alebo v druhom pripade rok vyroby vozidla)
 
 Exercise 2
+Pomocou GLM testujem ci su vsetky veky alebo v druhom pripade vyyrobne roky statisticky vyznamne. Inak povedane su niektore veky (vyrobne roky) statisticky nevyznamne, teda neovplivnuju Burning Cost? Ak su statisticky vyznamne,tak pri vytvarani modelu by som ich mala brat do uvahy, lebo mi ovplivnuju predikciu. Aby GLM vedel robit s D_age (8. stlpec ), Construct_year (17.stlpec), tak musia byt faktor, nasledujucim prikazom som ich prekonvertovala na faktor.    
 ```{r}
-model1 <- glm(data = dt_pol_w_claims %>% filter(Burning_Cost != 0, Burning_Cost < 100),
+dt_pol_w_claims[0,8]<- as.factor(dt_pol_w_claims[,8])
+dt_pol_w_claims[0,17]<- as.factor(dt_pol_w_claims[,17])
+```
+
+GLM pre vek poistovatela 
+```{r}
+model1 <- glm(data = dt_pol_w_claims  %>% filter(Burning_Cost != 0, Burning_Cost < 110),
               formula = Burning_Cost ~ D_age,
               family = Gamma())
 summary(model1)
 ```
-
+Kedze pri vsetkych vekoch mam Pr(>|t|)>5%, tak su vsetky veky statisticky vyznamne. 
+GLM pre rok vyroby
 ```{r}
-model2 <- glm(data = dt_pol_w_claims %>% filter(Burning_Cost != 0, Burning_Cost < 100),
+dt_pol_w_claims[0,17]<- as.factor(dt_pol_w_claims[,17])
+model2 <- glm(data = dt_pol_w_claims  %>% filter(Burning_Cost != 0, Burning_Cost < 250),
               formula = Burning_Cost ~ Construct_year,
               family = Gamma())
 summary(model2)
 ```
+Aj v tomto prípade mi vyslo vsetky roky statisticky vyznamne. 
