@@ -1,0 +1,102 @@
+```{r}
+library(dplyr)
+#Nacitala som data (data z Lesson 5, ktore uz maju spojene data Claims a data Policy). Tak ako na hodine Lesson 6 pridam kody, pomocou ktorych budem moct kontrolovat spravanie modelu. Teda ak trochu upravim glm model, tak ci je lepsi ako povodny alebo uprava iba zhorsila glm model.    
+dt_pol_w_claims <- readRDS("C:/Users/Lucia_Sebestova/Documents/Matfyz(4)/VTvAktuarstve/GeneralInsurance_Class/Data/lesson6_dt_pol_w_claims.rds")
+set.seed(58742) 
+ind <- sample(2, nrow(dt_pol_w_claims), replace=TRUE, prob=c(0.80, 0.20))
+dt_pol_w_claims <- mutate(dt_pol_w_claims,
+                data_status = ifelse(ind == 1, 
+                                     "Training",
+                                     ifelse(ind == 2, 
+                                            "Validation", 
+                                            "Unseen")
+                )
+)
+
+train <- dt_pol_w_claims %>% filter(data_status == "Training")
+val <- dt_pol_w_claims %>% filter(data_status == "Validation")
+
+mse <- function(prediction, actual){
+  return(sum((prediction-actual)^2, na.rm = TRUE)/length(prediction))
+}
+#glm model z ulohy Lesson 5
+model1 <- glm(data = dt_pol_w_claims,
+              formula = Burning_Cost ~ D_age,
+              family = Gamma())
+summary(model1)
+#training glm model
+model1a <- glm(data = train,
+              formula = Burning_Cost ~ D_age,
+              family = Gamma())
+summary(model1a)
+mse(predict(model1a, train, type = "response"), train$Burning_Cost) #vyslo mse medzi predikciou train. a skutocnou train. = 198 
+prediction <- predict(model1a, val, type = "response") #predikcia  na Validation datach  na zaklade modelu1a
+mse(prediction, val$Burning_Cost) #vyšlo mse medzi predikciou val. a skutocnostou val.= 284.1642. 
+```
+MSE sa budem snazit zmensit upravou povodneho glm modelu
+Pridam dalsiu premennu Construct_year, lebo to ake stare je vozidlo ovplivni kolko bude platit poistovna, ak nastane skoda.Cim starsie vozidlo, tym  straca na hodnote.
+```{r}
+model2 <- glm(data = train,
+              formula = Burning_Cost ~ D_age,
+              family = Gamma())
+summary(model2)
+
+mse(predict(model2, train, type = "response"), train$Burning_Cost)
+mse(predict(model2, val, type = "response"), val$Burning_Cost) 
+```
+Velmi malinko sa zmensila, cize to ze pridam Construct_year mi nezlepsilo glm model.Preto som pridala este jednu premennu Veh_type1. Veh_type1 je aky je ucel vozidla, ci vozidlo je taxi alebo autoskola, alebo sukromne auto....Ak skoda nastane na sukromnom aute, tak nie je taka vysoka ako ked poistovna musi vyplatit odskodne, kde vozidlom je napriklad nakladne auto nas 20 ton.  
+```{r}
+model3 <- glm(data = train,
+              formula = Burning_Cost ~ D_age + Construct_year+Veh_type1,
+              family = Gamma())
+summary(model3)
+
+mse(predict(model3, train, type = "response"), train$Burning_Cost)
+mse(predict(model3, val, type = "response"), val$Burning_Cost) 
+```
+MSE vyslo mensie ako pri povodnom glm modeli, teda pridanie Construct_year a Veh_type1 bolo dobre rozhodnutie. Pozrela som sa keby som mala iba premennu Veh_type1.
+```{r}
+model4 <- glm(data = train,
+              formula = Burning_Cost ~ D_age +Veh_type1,
+              family = Gamma())
+summary(model4)
+
+mse(predict(model4, train, type = "response"), train$Burning_Cost) #191.4968
+mse(predict(model4, val, type = "response"), val$Burning_Cost) #282.8548
+```
+Vyslo mse medzi predikciou train. a skutocnou train. o trochu horsia ako v modeli3, ale mse medzi predikciou val. a skutocnostou val.sa zlepsilo a teda chcem taky model, ktory by vedel odhadnut Burning Cost v buducnoti co najlepsie. Teda zatial najlepsi je model4, ktory sa pokusim este vylepsit.
+```{r}
+source("Support/emb_chart.R")
+emblem_graph(
+  dt.frm = train %>% cbind(data.frame(pred = predict(model4, train, type = "response"))),
+  x_var =  "Veh_type1",
+  target = "Burning_Cost",
+  prediction =  "pred"
+   
+  )
+```
+Graf nebol velmi citatelny, ale vytvorila sa aj tabulka, ktora bola citatelnejsia. Je 13 typov v Veh_type1. Najvacsi pocet v train tvori private car, commercial car <3100 kg, commercial car <3500 kg, driving school car,taxi category A a dalsie ktore su pod 1,08%. Preto som sa rozhodla, ze vytvorim iba 3 skupiny Veh_type1. Jedna skupina budu private car; 2. skupina: mali exposure 10,39%-5,74%; 3. zvysok=other.    
+```{r}
+train <- train %>% 
+  mutate(Veh_type1 = ifelse(as.character(Veh_type1) == 'private car', 'private car', ifelse(as.character(Veh_type1) == 'articulated vehicle'| as.character(Veh_type1) == 'commercial car <3100 kg'| as.character(Veh_type1) == 'commercial car <3500 kg',as.character(Veh_type1),'other')))
+         
+model5 <- glm(data = train,
+              formula = Burning_Cost ~ D_age + Veh_type1,
+              family = Gamma())
+summary(model5)
+```
+```{r}
+mse(predict(model5, train, type = "response"), train$Burning_Cost) #193.69
+mse(predict(model5, val %>% mutate(Veh_type1 = ifelse(as.character(Veh_type1) == 'private car', 'private car', ifelse(as.character(Veh_type1) == 'articulated vehicle'| as.character(Veh_type1) == 'commercial car <3100 kg'| as.character(Veh_type1) == 'commercial car <3500 kg',as.character(Veh_type1),'other'))), type = "response"), val$Burning_Cost) #281.65
+```
+Vyslo mse medzi predikciou train. a skutocnou train. sa zhorsili v porovani s modelom4, ale je stale lepsia ako bol povodny model (model1a). MSE medzi predikciou val. a skutocnostou val.sa zlepsilo a kedze chcem taky model, ktory by vedel odhadnut Burning Cost v buducnoti co najlepsie, tak najlepsi model zo vsetkych, ktore som vytvorila je model5 (posledny), ktoremu sa pridala premenna Veh_type1 a tu premennu som upravila, tak ze som vytvorila iba 3 skupiny.  
+
+Graf pre fittovany model5
+```{r}
+emblem_graph(
+  dt.frm = train %>% cbind(data.frame(pred = predict(model5, train, type = "response"))),
+  x_var =  "Veh_type1",
+  target = "Burning_Cost",
+  prediction =  "pred"
+  )
+```
