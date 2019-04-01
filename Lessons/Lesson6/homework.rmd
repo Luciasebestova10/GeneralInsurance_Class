@@ -84,8 +84,6 @@ model5 <- glm(data = train,
               formula = Burning_Cost ~ D_age + Veh_type1,
               family = Gamma())
 summary(model5)
-```
-```{r}
 mse(predict(model5, train, type = "response"), train$Burning_Cost) #193.69
 mse(predict(model5, val %>% mutate(Veh_type1 = ifelse(as.character(Veh_type1) == 'private car', 'private car', ifelse(as.character(Veh_type1) == 'articulated vehicle'| as.character(Veh_type1) == 'commercial car <3100 kg'| as.character(Veh_type1) == 'commercial car <3500 kg',as.character(Veh_type1),'other'))), type = "response"), val$Burning_Cost) #281.65
 ```
