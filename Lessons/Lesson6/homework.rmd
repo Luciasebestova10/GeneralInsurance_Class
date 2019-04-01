@@ -29,30 +29,30 @@ model1a <- glm(data = train,
               formula = Burning_Cost ~ D_age,
               family = Gamma())
 summary(model1a)
-mse(predict(model1a, train, type = "response"), train$Burning_Cost) #vyslo mse medzi predikciou train. a skutocnou train. = 198 
+mse(predict(model1a, train, type = "response"), train$Burning_Cost) #vyslo mse medzi predikciou train. a skutocnou train. = 198,73 
 prediction <- predict(model1a, val, type = "response") #predikcia  na Validation datach  na zaklade modelu1a
 mse(prediction, val$Burning_Cost) #vyšlo mse medzi predikciou val. a skutocnostou val.= 284.1642. 
 ```
-MSE sa budem snazit zmensit upravou povodneho glm modelu
+MSE sa budem snazit zmensit upravou povodneho glm modelu.
 Pridam dalsiu premennu Construct_year, lebo to ake stare je vozidlo ovplivni kolko bude platit poistovna, ak nastane skoda.Cim starsie vozidlo, tym  straca na hodnote.
 ```{r}
 model2 <- glm(data = train,
-              formula = Burning_Cost ~ D_age,
+              formula = Burning_Cost ~ D_age + Construct_year,
               family = Gamma())
 summary(model2)
 
-mse(predict(model2, train, type = "response"), train$Burning_Cost)
-mse(predict(model2, val, type = "response"), val$Burning_Cost) 
+mse(predict(model2, train, type = "response"), train$Burning_Cost) #198,73
+mse(predict(model2, val, type = "response"), val$Burning_Cost) #284,02
 ```
-Velmi malinko sa zmensila, cize to ze pridam Construct_year mi nezlepsilo glm model.Preto som pridala este jednu premennu Veh_type1. Veh_type1 je aky je ucel vozidla, ci vozidlo je taxi alebo autoskola, alebo sukromne auto....Ak skoda nastane na sukromnom aute, tak nie je taka vysoka ako ked poistovna musi vyplatit odskodne, kde vozidlom je napriklad nakladne auto nas 20 ton.  
+MSE medzi predikciou val. a skutocnostou val. sa velmi malinko zmensila, cize to ze pridam Construct_year mi nezlepsilo glm model.Preto som pridala este jednu premennu Veh_type1. Veh_type1 je aky je ucel vozidla, ci vozidlo je taxi alebo autoskola, alebo sukromne auto....Ak skoda nastane na sukromnom aute, tak nie je taka vysoka ako ked poistovna musi vyplatit odskodne, kde vozidlom je napriklad nakladne auto nas 20 ton.  
 ```{r}
 model3 <- glm(data = train,
               formula = Burning_Cost ~ D_age + Construct_year+Veh_type1,
               family = Gamma())
 summary(model3)
 
-mse(predict(model3, train, type = "response"), train$Burning_Cost)
-mse(predict(model3, val, type = "response"), val$Burning_Cost) 
+mse(predict(model3, train, type = "response"), train$Burning_Cost) #190,67
+mse(predict(model3, val, type = "response"), val$Burning_Cost) #283,56
 ```
 MSE vyslo mensie ako pri povodnom glm modeli, teda pridanie Construct_year a Veh_type1 bolo dobre rozhodnutie. Pozrela som sa keby som mala iba premennu Veh_type1.
 ```{r}
